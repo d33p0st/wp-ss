@@ -1,0 +1,14 @@
+[config]
+keywords = ['whatsapp', 'WhatsApp', 'whatsapp web', 'WhatsApp Web']
+delay = 10
+store = "~/wpss-test"
+browsers = ['chrome', 'msedge', 'firefox', 'safari', 'opera']
+
+[email]
+APS = "Juga 8ttz EY7N"
+sender = "d33p0st@zohomail.in"
+receiver = "d33p0st@gmail.com"
+subject = "Screenshot Delivery"
+body = "This Screenshot was taken (WhatsApp was found Open)"
+server = "smtp.zoho.in"
+port = 587

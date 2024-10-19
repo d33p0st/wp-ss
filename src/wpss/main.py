@@ -1,38 +1,137 @@
-from .core import Screenshot, WhatsApp
-from argpi import Arguments, ArgumentDescription, FetchType
-from time import sleep as pause
-from os import getcwd
-import sys
+from .core import ConfigManager, Email, WhatsApp, Screenshot
+from argpi import ArgumentDescription, Arguments, FetchType
+from os.path import basename, dirname, expanduser, expandvars, join, exists
+from os import getcwd as cwd
+from typing import Tuple, Dict
+from time import sleep
 
-class Screenshotter:
-    def __init__(self, arguments: Arguments) -> None:
-        self.arguments = arguments
-        self.sleep_time = 10
-        self.location = getcwd()
+arguments = Arguments().__capture__()
+arguments.__add__('set-config', ArgumentDescription().shorthand('setconf'))
+arguments.__add__('capture', ArgumentDescription().shorthand('cap'))
+arguments.__analyse__()
 
-        if self.arguments.__there__('--delay'):
-            self.sleep_time = int(self.arguments.__fetch__('--delay', FetchType.SINGULAR))
+def get_config() -> Tuple[ConfigManager, Dict]:
+    if arguments.__there__('set-config'):
+        location: str = arguments.__fetch__('set-config', FetchType.SINGULAR)
+        location = expanduser(expandvars(location))
+        if location.startswith('./'):
+            location = join(cwd(), location[2:])
         
-        if self.arguments.__there__('--location'):
-            self.location = self.arguments.__fetch__('--location', FetchType.SINGULAR)
-
-        try:
-            self.start
-        except KeyboardInterrupt:
-            sys.exit(1)
-
-    @property
-    def start(self) -> None:
-        while True:
-            if WhatsApp().open:
-                Screenshot(getcwd()).take
-            pause(self.sleep_time)
+        # save this location to ~/.wpss
+        with open(join(expanduser('~'), '.wpss'), 'w+') as ref:
+            ref.write(location)
+        print(f"Saved Where to look for config to: {join(expanduser('~'), '.wpss')}")
+        
+        config_file = ConfigManager(dirname(location), basename(location))
+    else:
+        # if ~/.wpss exists
+        if exists(join(expanduser('~'), '.wpss')):
+            with open(join(expanduser('~'), '.wpss'), 'r+') as ref:
+                location = ref.read().replace('\n', '')
+            
+            config_file = ConfigManager(dirname(location), basename(location))
+        else:
+            config_file = ConfigManager()
+            with open(join(expanduser('~'), '.wpss'), 'w+') as ref:
+                ref.write(join(expanduser('~'), '.ss-config.toml'))
+            print(f"Saved Where to look for config to: {join(expanduser('~'), '.wpss')}")
+            print(f"Where to look: {join(expanduser('~'), '.ss-config.toml')} (default)")
     
-def main():
-    arguments = Arguments().__capture__()
-    arguments.__add__('--delay', ArgumentDescription().shorthand('-d'))
-    arguments.__add__('--location', ArgumentDescription().shorthand('-loc'))
-    arguments.__add__('--start', ArgumentDescription().shorthand('-s'))
-    arguments.__analyse__()
+    # get the info
+    # CONFIG: keywords, store, delay, browsers
+    # EMAIL: APS, sender, receiver, subject, body, server, port
 
-    Screenshotter(arguments)
+    keywords = config_file.fetch('config.keywords')
+    store = config_file.fetch('config.store')
+    delay = config_file.fetch('config.delay')
+    browsers = config_file.fetch('config.browsers')
+
+    APS = config_file.fetch('email.APS')
+    sender = config_file.fetch('email.sender')
+    receiver = config_file.fetch('email.receiver')
+    subject = config_file.fetch('email.subject')
+    body = config_file.fetch('email.body')
+    server = config_file.fetch('email.server')
+    port = config_file.fetch('email.port')
+
+    # handle default
+    if not keywords:
+        keywords = ['whatsapp', 'WhatsApp', 'whatsapp web', 'WhatsApp Web']
+    
+    if not store:
+        raise EnvironmentError("config.store is a manadatory config variable. NOT FOUND in toml file.")
+    
+    if not delay:
+        delay = 10
+    elif not isinstance(delay, int):
+        delay = int(delay)
+    
+    if not browsers:
+        browsers = ['chrome', 'firefox', 'safari', 'msedge', 'opera']
+    
+    if not APS:
+        raise EnvironmentError("email.APS is a mandatory config variable. NOT FOUND.")
+    
+    if not sender:
+        raise EnvironmentError("email.sender is a mandatory config variable. NOT FOUND.")
+    
+    if not receiver:
+        raise EnvironmentError("email.receiver is a mandatory config variable. NOT FOUND.")
+    
+    if not subject:
+        subject = "Screenshot_Delivery"
+    
+    if not server:
+        raise EnvironmentError("email.server is a mandatory config variable. NOT FOUND.")
+    
+    if not port:
+        port = 587
+    elif not isinstance(port, int):
+        port = int(port)
+    
+    res = {}
+    res['keywords'] = keywords
+    res['store'] = store
+    res['delay'] = delay
+    res['browsers'] = browsers
+    res['APS'] = APS
+    res['sender'] = sender
+    res['receiver'] = receiver
+    res['subject'] = subject
+    res['body'] = body
+    res['server'] = server
+    res['port'] = port
+    
+    return (config_file, res)
+
+def main():
+    config, configurations = get_config()
+
+    if arguments.__there__('capture'):
+        while True:
+            # Take ss only if whatsapp is open
+            if WhatsApp(configurations['keywords'], configurations['browsers']).open:
+                ss = Screenshot(configurations['store'])
+                ss.take
+
+                print(f"Screenshot saved to {ss.saved_to}")
+                
+                # Email it
+                email = Email(
+                    Application_Specific_Password=configurations['APS'],
+                    sender=configurations['sender'],
+                    receiver=configurations['receiver'],
+                    subject=configurations['subject'],
+                    body=configurations['body'],
+                    attachment=ss.saved_to,
+                    server=configurations['server'],
+                    port=configurations['port'],
+                )
+
+                print("Sending to Moderator ...", end='\r')
+                email.send
+                print("                         ", end='\r')
+                print("Sent to Moderator.")
+                sleep(configurations['delay']//2)
+            else:
+                sleep(configurations['delay'])
