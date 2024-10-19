@@ -172,9 +172,9 @@ class ZipAll:
     def check_contents(dir: str) -> bool:
         return len(listdir(dir)) > 0
 
-    def __init__(self, directory: str, outfile_name: str = 'output.zip') -> None:
+    def __init__(self, directory: str, outfile_name: str = 'output.zip', filename_keyword: str = 'screenshot') -> None:
         self.directory = directory
-        self.files = [f for f in listdir(directory) if isfile(join(directory, f))]
+        self.files = [f for f in listdir(directory) if isfile(join(directory, f)) and filename_keyword in f]
 
         self.zip_filename = join(directory, outfile_name)
     
