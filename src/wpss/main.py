@@ -112,6 +112,8 @@ def get_config() -> Tuple[ConfigManager, Dict]:
     res['store'] = store
     res['delay'] = delay
     res['browsers'] = browsers
+    res['bulk'] = bulk
+    res['bulk-time'] = bulk_time
     res['APS'] = APS
     res['sender'] = sender
     res['receiver'] = receiver
