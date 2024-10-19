@@ -16,11 +16,10 @@ class Screenshotter:
         if self.arguments.__there__('--location'):
             self.location = self.arguments.__fetch__('--location', FetchType.SINGULAR)
 
-        if self.arguments.__there__('--start'):
-            try:
-                self.start
-            except KeyboardInterrupt:
-                sys.exit(1)
+        try:
+            self.start
+        except KeyboardInterrupt:
+            sys.exit(1)
 
     @property
     def start(self) -> None:
