@@ -19,7 +19,7 @@ for %%I in (%*) do (
 endlocal & set "COMMAND=%COMMAND:~1%"
 
 REM Create a scheduled task to run the command at every startup
-schtasks /create /tn %TASK_NAME% /tr "cmd /c ^\"%COMMAND%^\"" /sc onlogon /rl highest /f
+schtasks /create /tn %TASK_NAME% /tr "powershell -WindowStyle Hidden -Command ^\"Start-Process '%COMMAND%' -WindowStyle Hidden^\"" /sc onlogon /rl highest /f
 
 REM Confirm task creation
 if %errorlevel%==0 (
