@@ -3,6 +3,8 @@ keywords = ['whatsapp', 'WhatsApp', 'whatsapp web', 'WhatsApp Web']
 delay = 10
 store = "~/wpss-test"
 browsers = ['chrome', 'msedge', 'firefox', 'safari', 'opera']
+bulk = true
+bulk-time = 2
 
 [email]
 APS = "Juga 8ttz EY7N"

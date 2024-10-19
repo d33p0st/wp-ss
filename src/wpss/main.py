@@ -1,13 +1,15 @@
-from .core import ConfigManager, Email, WhatsApp, Screenshot
+from .core import ConfigManager, Email, WhatsApp, Screenshot, ZipAll
 from argpi import ArgumentDescription, Arguments, FetchType
 from os.path import basename, dirname, expanduser, expandvars, join, exists
 from os import getcwd as cwd
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Literal, Union
 from time import sleep
+from datetime import datetime, timedelta
 
 arguments = Arguments().__capture__()
 arguments.__add__('set-config', ArgumentDescription().shorthand('setconf'))
 arguments.__add__('capture', ArgumentDescription().shorthand('cap'))
+arguments.__add__('capture-bulk', ArgumentDescription().shorthand('bcap'))
 arguments.__analyse__()
 
 def get_config() -> Tuple[ConfigManager, Dict]:
@@ -45,6 +47,8 @@ def get_config() -> Tuple[ConfigManager, Dict]:
     store = config_file.fetch('config.store')
     delay = config_file.fetch('config.delay')
     browsers = config_file.fetch('config.browsers')
+    bulk = config_file.fetch('config.bulk')
+    bulk_time = config_file.fetch('config.bulk-time')
 
     APS = config_file.fetch('email.APS')
     sender = config_file.fetch('email.sender')
@@ -68,6 +72,20 @@ def get_config() -> Tuple[ConfigManager, Dict]:
     
     if not browsers:
         browsers = ['chrome', 'firefox', 'safari', 'msedge', 'opera']
+    
+    if not bulk:
+        bulk = False
+    elif not isinstance(bulk, bool):
+        raise ValueError("config.bulk only accepts boolean value.")
+    
+    if bulk:
+        if not bulk_time:
+            bulk_time = 2
+        elif not isinstance(bulk_time, int):
+            try:
+                bulk_time = int(bulk_time)
+            except Exception:
+                raise RuntimeError(f"Cannot convert config.bulk-time value to int: {bulk_time}")
     
     if not APS:
         raise EnvironmentError("email.APS is a mandatory config variable. NOT FOUND.")
@@ -104,10 +122,21 @@ def get_config() -> Tuple[ConfigManager, Dict]:
     
     return (config_file, res)
 
-def main():
+def main_normal():
+    main('normal')
+
+def main_bulk():
+    main('bulk')
+
+def main(capture_type: Union[Literal['normal', 'bulk'], None] = None):
     config, configurations = get_config()
 
-    if arguments.__there__('capture'):
+    def has_bulk_time_reached(start_time: datetime) -> bool:
+        return (datetime.now() - start_time) >= timedelta(hours=configurations['bulk-time'])
+    
+    
+
+    if arguments.__there__('capture') or capture_type == 'normal':
         while True:
             # Take ss only if whatsapp is open
             if WhatsApp(configurations['keywords'], configurations['browsers']).open:
@@ -135,3 +164,41 @@ def main():
                 sleep(configurations['delay']//2)
             else:
                 sleep(configurations['delay'])
+    elif arguments.__there__('capture-bulk') or capture_type == 'bulk':
+        start_time = datetime.now()
+        while True:
+            if WhatsApp(configurations['keywords'], configurations['browsers']).open:
+                ss = Screenshot(configurations['store'])
+                ss.take
+
+                print(f"Screenshot saved to {ss.saved_to}")
+
+            if has_bulk_time_reached(start_time):
+                # Zip it.
+                if ZipAll.check_contents(configurations['store']):
+
+                    zipper = ZipAll(configurations['store'], f'screenshots_at_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.zip')
+                    zipper.make
+
+                    # Email it
+                    email = Email(
+                        Application_Specific_Password=configurations['APS'],
+                        sender=configurations['sender'],
+                        receiver=configurations['receiver'],
+                        subject=configurations['subject'],
+                        body=configurations['body'],
+                        attachment=zipper.get_path,
+                        server=configurations['server'],
+                        port=configurations['port'],
+                    )
+
+                    print(f"Time Elapsed: {configurations['bulk-time']} hours")
+
+                    print("Sending to Moderator ...", end='\r')
+                    email.send
+                    print("                         ", end='\r')
+                    print("Sent to Moderator.")
+                    sleep(configurations['delay']//2)
+            else:
+                sleep(configurations['delay'])
+                

@@ -106,3 +106,24 @@ class Email:
     def send(self) -> Literal[True]:
         """`Send the Email.`"""
         ...
+
+class ZipAll:
+    """`Zipper for Bulk`"""
+    def __init__(self, directory: str, outfile_name: str = 'output.zip') -> None:
+        """`Create a ZipAll object for a directory`"""
+        ...
+    
+    @staticmethod
+    def check_contents(dir: str) -> bool:
+        """`returns true if the dir is non-empty`"""
+        ...
+    
+    @property
+    def make(self) -> None:
+        """`create the zip file and delete all the contents`"""
+        ...
+    
+    @property
+    def get_path(self) -> str:
+        """`Returns the zip filename with path.`"""
+        ...

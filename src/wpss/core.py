@@ -1,7 +1,7 @@
 from pyautogui import screenshot
 from datetime import datetime
-from os.path import expanduser, expandvars, join, isdir, exists, basename
-from os import getcwd
+from os.path import expanduser, expandvars, join, isdir, exists, basename, isfile
+from os import getcwd, listdir, unlink
 import psutil, pygetwindow as gw
 from typing import Union, Literal
 from email.mime.text import MIMEText
@@ -10,6 +10,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import toml
 import smtplib
+import zipfile
 
 class Screenshot:
     def __init__(self, location: str) -> None:
@@ -165,3 +166,29 @@ class Email:
             server.sendmail(self.sender, self.receiver, msg.as_string())
         
         return True
+
+class ZipAll:
+    @staticmethod
+    def check_contents(dir: str) -> bool:
+        return len(listdir(dir)) > 0
+
+    def __init__(self, directory: str, outfile_name: str = 'output.zip') -> None:
+        self.directory = directory
+        self.files = [f for f in listdir(directory) if isfile(join(directory, f))]
+
+        self.zip_filename = join(directory, outfile_name)
+    
+    @property
+    def make(self) -> None:
+
+        with zipfile.ZipFile(self.zip_filename, 'w') as zip_ref:
+            for file in self.files:
+                filepath = join(self.directory, file)
+                zip_ref.write(filepath, arcname=file)
+        
+        for file in self.files:
+            unlink(join(self.directory, file))
+    
+    @property
+    def get_path(self) -> str:
+        return self.zip_filename
