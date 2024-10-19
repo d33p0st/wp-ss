@@ -1,7 +1,7 @@
 from .core import ConfigManager, Email, WhatsApp, Screenshot, ZipAll
 from argpi import ArgumentDescription, Arguments, FetchType
 from os.path import basename, dirname, expanduser, expandvars, join, exists
-from os import getcwd as cwd
+from os import getcwd as cwd, unlink
 from typing import Tuple, Dict, Literal, Union
 from time import sleep
 from datetime import datetime, timedelta
@@ -201,6 +201,8 @@ def main(capture_type: Union[Literal['normal', 'bulk'], None] = None):
                     print("                         ", end='\r')
                     print("Sent to Moderator.")
                     sleep(configurations['delay']//2)
+                    start_time = datetime.now()
+                    unlink(zipper.get_path)
             else:
                 sleep(configurations['delay'])
                 
