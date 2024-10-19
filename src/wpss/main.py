@@ -28,6 +28,7 @@ def get_config() -> Tuple[ConfigManager, Dict]:
     else:
         # if ~/.wpss exists
         if exists(join(expanduser('~'), '.wpss')):
+            print(f"Fetching configurations from {join(expanduser('~'), '.wpss')}")
             with open(join(expanduser('~'), '.wpss'), 'r+') as ref:
                 location = ref.read().replace('\n', '')
             
@@ -136,7 +137,6 @@ def main(capture_type: Union[Literal['normal', 'bulk'], None] = None):
     def has_bulk_time_reached(start_time: datetime) -> bool:
         return (datetime.now() - start_time) >= timedelta(hours=configurations['bulk-time'])
     
-    
 
     if arguments.__there__('capture') or capture_type == 'normal':
         while True:
@@ -176,6 +176,7 @@ def main(capture_type: Union[Literal['normal', 'bulk'], None] = None):
                 print(f"Screenshot saved to {ss.saved_to}")
 
             if has_bulk_time_reached(start_time):
+                start_time = datetime.now()
                 # Zip it.
                 if ZipAll.check_contents(configurations['store']):
 
@@ -201,7 +202,6 @@ def main(capture_type: Union[Literal['normal', 'bulk'], None] = None):
                     print("                         ", end='\r')
                     print("Sent to Moderator.")
                     sleep(configurations['delay']//2)
-                    start_time = datetime.now()
                     unlink(zipper.get_path)
             else:
                 sleep(configurations['delay'])
