@@ -11,5 +11,5 @@ dependencies = ['pillow', 'pyautogui', 'psutil', 'pygetwindow', 'argpi', 'toml']
 
 [project.scripts]
 wpss = 'wpss.main:main'
-wpss_normal = 'wpss:main:main_normal'
-wpss_bulk = 'wpss:main:main_bulk'
+wpss_normal = 'wpss.main:main_normal'
+wpss_bulk = 'wpss.main:main_bulk'
